@@ -1,0 +1,58 @@
+flowchart TB
+
+    subgraph FASE0["⚙️ FASE 0 — Desarrollo local (LAN España)"]
+        direction LR
+        F0_CAM["📷 WebCam"] --> F0_RPI["RPi5\n192.168.x.x"]
+        F0_RPI -->|"TCP directo\nLAN"| F0_PC["PC\n192.168.x.x"]
+    end
+
+    subgraph FASE1["🏠→🏢 FASE 1 — Redes distintas mismo país"]
+        direction LR
+        F1_RPI["RPi5\nRed A"] -->|"WireGuard\nInternet España"| F1_PC["PC\nRed B"]
+    end
+
+    subgraph FASE2["🌍 FASE 2 — Internacional (objetivo final)"]
+        direction LR
+        F2_RPI["RPi5\nBolivia / cualquier país"] -->|"WireGuard\nInternet global"| F2_VPS["VPS / PC\nEspaña"]
+    end
+
+    FASE0 -.->|"Añadir WireGuard\ncomo capa transparente"| FASE1
+    FASE1 -.->|"Cambiar IP endpoint\nsin tocar lógica"| FASE2
+
+    style FASE0 fill:#d4edda,stroke:#28a745
+    style FASE1 fill:#fff3cd,stroke:#ffc107
+    style FASE2 fill:#f8d7da,stroke:#dc3545
+
+    %% ─────────────────────────────────────────
+    subgraph NODO_REMOTO["📦 Nodo Remoto — RPi5 (mismo en las 3 fases)"]
+        direction TB
+        CAM["📷 WebCam USB"]
+        FFMPEG["FFmpeg\nCaptura + Segmenta\nH.264 · 720p · 15fps · ~3s clips"]
+        BUFFER["Buffer Local\n/var/camera-buffer/\nMPEG-TS + SHA-256"]
+        DETECT["Monitor\nConectividad"]
+        SENDER["Sender\n(TCP + retry + hash)"]
+        NET_REMOTE["Capa de red\n(LAN ahora · WireGuard después)"]
+
+        CAM --> FFMPEG
+        FFMPEG --> BUFFER
+        DETECT -->|"sin red"| BUFFER
+        DETECT -->|"con red"| SENDER
+        BUFFER -->|"sync diferida\nal reconectar"| SENDER
+        SENDER --> NET_REMOTE
+    end
+
+    subgraph NODO_CENTRAL["🖥️ Nodo Central — PC / VPS (mismo en las 3 fases)"]
+        direction TB
+        NET_CENTRAL["Capa de red\n(LAN ahora · WireGuard después)"]
+        RECEIVER["Receiver\nvalida SHA-256 + orden"]
+        STORAGE["Almacenamiento\n/video/YYYY-MM-DD/HH/"]
+        AUTH["Auth\n(bcrypt + JWT)"]
+        LOG["Logger\neventos + accesos"]
+        API["API REST\n(Fase 3)"]
+
+        NET_CENTRAL --> RECEIVER
+        RECEIVER --> STORAGE
+        RECEIVER --> LOG
+        AUTH --> API
+        STORAGE --> API
+    end

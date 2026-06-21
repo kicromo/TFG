@@ -1,0 +1,18 @@
+# Vídeo grabado — demasiado grande para git (cientos de MB)
+nodo-central/storage/
+
+# Logs de eventos (datos de ejecución, no código)
+nodo-central/logs/
+
+# Caché de Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Archivos temporales de WireGuard (claves privadas — nunca al repo)
+*.key
+wg*.conf
+
+# Archivos de entorno local
+.env
+*.local

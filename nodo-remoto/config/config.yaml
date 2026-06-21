@@ -1,0 +1,39 @@
+camera:
+  device: /dev/video0
+  format: mjpeg           # MJPG permite 720p@30fps; YUYV limita a 7.5fps por USB
+  resolution: "1280x720"
+  framerate: 15
+  codec: libx264          # software encoding (h264_v4l2m2m no disponible en RPi5)
+  preset: ultrafast
+  bitrate: "1000k"
+
+capture:
+  segment_duration: 3          # segundos por segmento (~384 KB/seg)
+  buffer_dir: /var/camera-buffer
+  # staging/ → segmento en escritura activa por FFmpeg
+  # ready/   → segmento completo, esperando al sender
+
+server:
+  host: "192.168.1.50"         # nodo central (PC España) — Ethernet LAN
+  port: 9000
+
+network:
+  type: "ethernet-lan"
+  rpi_ip: "192.168.1.38"
+  server_ip: "192.168.1.50"
+
+health:
+  window_size: 10        # ventana deslizante de resultados ACK/NACK
+  live_threshold: 3      # mínimo de éxitos en la ventana para mantenerse en LIVE
+                         # < 3/10 → cambia a modo BUFFER
+  recovery_pings: 3      # pings TCP consecutivos OK para volver a LIVE desde BUFFER
+  ping_interval: 30      # segundos entre pings en modo BUFFER
+
+sync:
+  archive_dir: /home/pi_damh/buffer   # segmentos guardados durante caída de red
+  scheduled_hour: 0                   # hora de sync nocturna (0 = medianoche)
+  scheduled_minute: 0
+
+buffer:
+  max_disk_percent: 80
+  max_segments: 5000

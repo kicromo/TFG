@@ -1,0 +1,12 @@
+server:
+  host: "0.0.0.0"   # escucha en todas las interfaces
+  port: 9000
+
+storage:
+  base_dir: /home/damh/TFG/nodo-central/storage/video
+  # segmentos se guardan en: base_dir/YYYY-MM-DD/HH/seg_XXX.ts
+
+logs:
+  dir: /home/damh/TFG/nodo-central/logs
+  max_bytes: 10485760   # 10 MB por fichero antes de rotar
+  backup_count: 7       # 7 rotaciones → ~70 MB máx en disco
