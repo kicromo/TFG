@@ -128,6 +128,45 @@ GOP:      -g 45 -keyint_min 45   (15 fps x 3 s = keyframe cada 3 s, corte limpio
 
 ---
 
+## DT-009: Configuración WireGuard — lecciones del despliegue en LAN
+
+**Fecha**: 2026-07-05
+**Estado**: Implementado (Fase 1 — LAN); pendiente migración a IP pública (Fase 2)
+
+**Problema**: Al configurar el túnel WireGuard, el RPi5 no establecía handshake con el PC. El sender enviaba paquetes pero el PC no recibía nada.
+
+**Causa raíz**: el `Endpoint` del RPi5 apuntaba a `192.168.1.50`, IP que no pertenecía al PC en ese momento. El PC tenía `192.168.1.37` (cable) y `192.168.1.47` (WiFi), asignadas por DHCP.
+
+**Diagnóstico empleado**:
+
+```bash
+# En el PC — capturar UDP en la interfaz física (no en any, sino en eno1)
+sudo tcpdump -i eno1 -n udp port 51820
+# Resultado: 0 paquetes capturados → los paquetes no llegaban al PC
+```
+
+```bash
+# Verificar IP real del PC
+ip addr show | grep '192.168'
+```
+
+El tcpdump reveló que el problema era de red, no de claves. Si los paquetes hubieran llegado pero el handshake fallara, el tcpdump mostraría paquetes y la causa sería un mismatch de claves públicas.
+
+**Resolución**: actualizar `Endpoint` en `/etc/wireguard/wg0.conf` del RPi5 con la IP correcta y reiniciar `wg-quick`.
+
+**Decisión de diseño derivada**: en Fase 2, el Endpoint del RPi5 apuntará a la IP pública del VPS (fija), eliminando el problema de IP dinámica por DHCP. Para la Fase 1 (LAN), se recomienda reserva DHCP en el router para la MAC del PC.
+
+**Flujo de diagnóstico para futuros fallos de túnel**:
+
+| Síntoma en `wg show` | Diagnóstico | Acción |
+|----------------------|------------|--------|
+| `transfer: X sent, 0 received` | Paquetes salen pero no llegan | tcpdump en el receptor: ¿llegan los paquetes? |
+| tcpdump: 0 paquetes | Endpoint incorrecto o firewall pre-WireGuard | Verificar IP del receptor y reglas UFW |
+| tcpdump: paquetes visibles pero sin handshake | Mismatch de claves públicas | Regenerar claves y actualizar configs |
+| `latest handshake: X seconds ago` ausente | No ha habido handshake | Verificar que el iniciador tiene `PersistentKeepalive` |
+
+---
+
 ## DT-007: Sender de doble modo LIVE/BUFFER
 
 **Fecha**: 2026-06-09
