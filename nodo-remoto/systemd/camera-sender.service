@@ -1,0 +1,18 @@
+[Unit]
+Description=Camera Sender — LIVE/BUFFER segment transmitter
+After=network.target wg-quick@wg0.service
+Wants=wg-quick@wg0.service
+After=camera-capture.service
+
+[Service]
+Type=simple
+User=pi_damh
+WorkingDirectory=/home/pi_damh/camera
+ExecStart=/usr/bin/python3 nodo-remoto/sync/sender.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

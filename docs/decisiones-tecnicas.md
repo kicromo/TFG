@@ -167,6 +167,36 @@ El tcpdump reveló que el problema era de red, no de claves. Si los paquetes hub
 
 ---
 
+## DT-010: DNS dinámico para IP pública dinámica del PC
+
+**Fecha**: 2026-07-16
+**Estado**: Implementado (Fase 1.5)
+
+**Problema**: El PC tiene IP pública dinámica asignada por Movistar. Cuando el RPi5 esté en Bolivia, necesitará conectar al endpoint WireGuard del PC usando un hostname fijo, independientemente de cuál sea la IP pública en ese momento. Sin un mecanismo de actualización DNS, cualquier cambio de IP rompe el túnel sin posibilidad de corrección remota.
+
+**Alternativas evaluadas**:
+
+| Opción | Coste | Pros | Contras |
+|--------|-------|------|---------|
+| VPS con IP pública fija (Hetzner, etc.) | ~5 EUR/mes | IP siempre fija, control total | Coste recurrente; añade un hop en la ruta |
+| Oracle Cloud Free Tier (VPS gratuito) | 0 EUR | Gratuito; IP fija | Puede cambiar de política; más complejo de mantener |
+| Tailscale | 0 EUR (plan personal) | Simple de configurar | La coordinación de claves pasa por servidores de terceros (fuera del control del proyecto) |
+| DuckDNS + port forwarding | 0 EUR | Gratuito; sin intermediarios en el tráfico | Dependiente de que el ISP no use CGNAT y no bloquee el puerto |
+
+**Decisión**: DuckDNS + port forwarding en el router doméstico.
+
+- Subdominio: `rpidamh.duckdns.org`
+- Script de actualización: `/home/damh/.duckdns/update.sh` (llamada HTTP a la API de DuckDNS)
+- Cron en el PC: `*/5 * * * *` cada 5 minutos
+- Port forwarding: UDP 51820 (WAN) → 192.168.1.49:51820 (LAN)
+- Endpoint del RPi5: `rpidamh.duckdns.org:51820` (antes era la IP física `192.168.1.49`)
+
+**Justificación**: DuckDNS no interviene en el tráfico — solo resuelve un nombre a una IP. El cifrado WireGuard (ChaCha20-Poly1305, Curve25519) opera de extremo a extremo entre el RPi5 y el PC. La seguridad del túnel no depende de DuckDNS; solo la localización del endpoint sí.
+
+**Limitación conocida**: si Movistar activa CGNAT o bloquea el puerto UDP 51820, el port forwarding deja de funcionar. En ese caso, la alternativa es Oracle Free Tier (VPS con IP pública fija) o avanzar a Fase 2 con VPS relay.
+
+---
+
 ## DT-007: Sender de doble modo LIVE/BUFFER
 
 **Fecha**: 2026-06-09
